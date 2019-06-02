@@ -1,0 +1,22 @@
+---
+Logging:
+  LogLevel:
+    Default: Debug
+    System: Debug
+    Microsoft: Debug
+
+OpenFaas:
+  gateway: http://gateway:31112/
+
+MQTT:
+  server: gateway
+  port: 1883
+  subscriptions:
+    - topics: 
+        - "device/sensor/#"
+      functions:
+        - logreading
+      mimetype: application/json
+    - topics: 
+        - "cheese/+/eat"
+      functions:

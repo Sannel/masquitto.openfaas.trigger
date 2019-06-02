@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.352
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTT.OpenFaas.Trigger", "MQTT.OpenFaas.Trigger\MQTT.OpenFaas.Trigger.csproj", "{858DBB8B-7FF0-45BD-A436-6B4636922FC3}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{7D17AC64-4342-496B-B809-ACD4BE4B1753}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{858DBB8B-7FF0-45BD-A436-6B4636922FC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{858DBB8B-7FF0-45BD-A436-6B4636922FC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{858DBB8B-7FF0-45BD-A436-6B4636922FC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{858DBB8B-7FF0-45BD-A436-6B4636922FC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D17AC64-4342-496B-B809-ACD4BE4B1753}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D17AC64-4342-496B-B809-ACD4BE4B1753}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D17AC64-4342-496B-B809-ACD4BE4B1753}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D17AC64-4342-496B-B809-ACD4BE4B1753}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0F2B1DDD-90B0-45C5-AA21-98A481D51998}
+	EndGlobalSection
+EndGlobal

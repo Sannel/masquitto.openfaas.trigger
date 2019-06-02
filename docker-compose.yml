@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  mqtt.openfaas.trigger:
+    image: ${DOCKER_REGISTRY-}mqttopenfaastrigger
+    build:
+      context: .
+      dockerfile: MQTT.OpenFaas.Trigger\Dockerfile
