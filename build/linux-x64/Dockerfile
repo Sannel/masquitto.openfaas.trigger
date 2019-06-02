@@ -1,8 +1,6 @@
 ARG tag=2.2
 FROM mcr.microsoft.com/dotnet/core/runtime:${tag} AS base
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8443
 COPY MQTT.OpenFaas.Trigger/ .
 RUN ln -s  /var/run/secrets/kubernetes.io/serviceaccount/ca.crt /etc/ssl/certs/kubernetes.pem \
     && groupadd -g 1200 house \
