@@ -71,7 +71,7 @@ jobs:
       feedsToUse: config
       nugetConfigPath: .nuget/nuget.config
       externalFeedCredentials: 'Sannel House MyGet'
-      condition: eq(variables['hasTests'], 'true')
+    condition: eq(variables['hasTests'], 'true')
   - task: DotNetCoreCLI@2
     displayName: 'dotnet test'
     inputs:
@@ -79,7 +79,7 @@ jobs:
       command: test
       arguments: '--collect "Code coverage"'
       publishTestResults: true
-      condition: eq(variables['hasTests'], 'true')
+    condition: eq(variables['hasTests'], 'true')
   - task: CopyFiles@2
     displayName: 'Copy Files to: $(Build.StagingDirectory)/$(projectFolder)/app_config/'
     inputs:
