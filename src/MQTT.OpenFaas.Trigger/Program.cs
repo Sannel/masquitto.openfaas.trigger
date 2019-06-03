@@ -38,13 +38,13 @@ namespace MQTT.OpenFaas.Trigger
 			builder.AddYamlFile("app_config/appsettings.yml");
 
 			var v = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+
 			configuration = builder.Build();
 			v.AddSingleton<IConfiguration>(configuration);
 			v.AddLogging(b =>
 			{
 				b.AddConfiguration(configuration);
 				b.AddConsole();
-				b.SetMinimumLevel(LogLevel.Debug);
 			});
 			v.AddTransient<MQTTSettings>();
 			v.AddTransient<Subscription>();
