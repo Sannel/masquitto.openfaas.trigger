@@ -108,7 +108,7 @@ namespace MQTT.OpenFaas.Trigger
 				{
 					if(!string.IsNullOrWhiteSpace(func))
 					{
-						using(var httpMessage = new HttpRequestMessage(HttpMethod.Post, $"/functions/async-{func}"))
+						using(var httpMessage = new HttpRequestMessage(HttpMethod.Post, $"/async-functions/{Uri.EscapeUriString(func)}"))
 						{
 							httpMessage.Content = new ByteArrayContent(message.ApplicationMessage.Payload);
 							httpMessage.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(MimeType);

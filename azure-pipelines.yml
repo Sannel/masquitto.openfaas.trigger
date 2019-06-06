@@ -3,7 +3,7 @@ trigger:
 - develop
 
 variables:
-  sdk_version: 2.2.300
+  sdk_version: 3.0.100-preview5-011568
   dockerRepositoryRoot: sannel
   dockerRepositoryName: mqtt.openfaas.trigger
   dockerTagBase: $(Build.SourceBranchName)-$(Build.BuildId)
@@ -11,8 +11,13 @@ variables:
   projectFolder: MQTT.OpenFaas.Trigger
   mainProjectPath: src/$(projectFolder)/$(projectFolder).csproj
   mainConfigPath: src/$(projectFolder)/app_config
+  tag: 3.0
+  codeName: buster
   hasClient: false
   hasTests: false
+  disableLinux: false
+  disableWindows: false
+  disableOSX: false
 
 name: $(date:yyyy.MM.dd)$(rev:.rr)
 
@@ -20,9 +25,10 @@ jobs:
 - job: 'osx'
   pool:
     vmImage: macOS-10.13
+  condition: ne(variables['disableOSX'], 'true')
   steps:
   - task: DotNetCoreInstaller@0
-    displayName: 'Use .NET Core sdk 2.2'
+    displayName: 'Use .NET Core sdk $(sdk_version)'
     inputs:
       version: $(sdk_version)
   - task: DotNetCoreCLI@2
@@ -161,6 +167,7 @@ jobs:
 - job: linux_arm
   pool:
     vmImage: ubuntu-16.04
+  condition: ne(variables['disableLinux'], 'true')
   steps:
     - powershell: |
         # Write your commands here
@@ -234,7 +241,7 @@ jobs:
         containerregistrytype: 'Container Registry'
         dockerRegistryConnection: 'Docker Hub'
         dockerFile: '$(Build.StagingDirectory)/Dockerfile'
-        buildArguments: 'tag=2.2-stretch-slim-arm32v7'
+        buildArguments: 'tag=$(tag)-$(codeName)-slim-arm32v7'
         defaultContext: false
         context: '$(Build.StagingDirectory)'
         imageName: '$(imageName)-linux-arm32v7'
@@ -264,9 +271,117 @@ jobs:
         artifactName: 'linux-arm'
         targetPath: '$(Build.StagingDirectory)'
 
+- job: linux_arm64
+  pool:
+    vmImage: ubuntu-16.04
+  condition: ne(variables['disableLinux'], 'true')
+  steps:
+    - powershell: |
+        # Write your commands here
+        sudo apt-get update
+        sudo apt-get install -y qemu qemu-user-static qemu-user binfmt-support
+        Copy-Item -Verbose /usr/bin/qemu-aarch64-static $(Build.StagingDirectory)
+        # Use the environment variables input below to pass secret variables to this script
+      displayName: 'Install qemu'
+    - task: DotNetCoreInstaller@0
+      displayName: 'Use .NET Core sdk $(sdk_version)'
+      inputs:
+        version: $(sdk_version)
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet restore'
+      inputs:
+        command: custom
+        projects: $(mainProjectPath)
+        custom: restore
+        arguments: '-r linux-arm --configfile .nuget/nuget.config'
+        feedsToUse: config
+        nugetConfigPath: .nuget/nuget.config
+        externalFeedCredentials: 'Sannel House MyGet'
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build Release'
+      inputs:
+        projects: $(mainProjectPath)
+        arguments: '-r linux-arm -c Release'
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build Debug'
+      inputs:
+        projects: $(mainProjectPath)
+        arguments: '-r linux-arm -c Debug'
+      condition: and(succeeded(), ne(variables['Build.SourceBranch'], 'refs/heads/master'))
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        publishWebProjects: false
+        projects: $(mainProjectPath)
+        arguments: '-r linux-arm -o $(Build.StagingDirectory)'
+        zipAfterPublish: false
+    - task: CopyFiles@2
+      displayName: 'Copy Files to: $(Build.StagingDirectory)/$(projectFolder)/app_config/'
+      inputs:
+        SourceFolder: '$(mainConfigPath)'
+        Contents: |
+          **/*.json
+          **/*.yml
+          **/*.pfx
+          **/*.crt
+        TargetFolder: '$(Build.StagingDirectory)/$(projectFolder)/app_config/'
+    - powershell: |
+        New-Item -Type Directory -Force $(Build.StagingDirectory)/$(projectFolder)/app_data/
+        New-Item -Type File -Force $(Build.StagingDirectory)/$(projectFolder)/app_data/.hold
+        
+        copy-item -Force -Verbose build/linux-arm/Dockerfile $(Build.StagingDirectory)/
+      displayName: 'Prepare Items'
+    - task: Docker@1
+      displayName: 'Run an image '
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerRegistryEndpoint: 'Docker Hub'
+        command: 'Run an image'
+        arguments: '--rm --privileged'
+        imageName: ' multiarch/qemu-user-static:register'
+        containerCommand: '--reset'
+    - task: Docker@0
+      displayName: 'Build an image arm'
+      inputs:
+        containerregistrytype: 'Container Registry'
+        dockerRegistryConnection: 'Docker Hub'
+        dockerFile: '$(Build.StagingDirectory)/Dockerfile'
+        buildArguments: 'tag=$(tag)-$(codeName)-slim-arm64v8'
+        defaultContext: false
+        context: '$(Build.StagingDirectory)'
+        imageName: '$(imageName)-linux-arm64v8'
+    - powershell: |
+        $img = "$(imageName)".ToLower()
+        docker save -o $(Build.StagingDirectory)/$(dockerRepositoryRoot).$(dockerRepositoryName).linux.arm64v8.tar "${img}-linux-arm64v8"
+        bzip2 -9 $(Build.StagingDirectory)/$(dockerRepositoryRoot).$(dockerRepositoryName).linux.arm64v8.tar
+      displayName: 'export image'
+#    - task: Docker@1
+#      displayName: 'Push an image'
+#      inputs:
+#        containerregistrytype: 'Container Registry'
+#        dockerRegistryEndpoint: 'Docker Hub'
+#        command: 'Push an image'
+#        imageName: '$(imageName)-linux-arm32v7'
+    - powershell: |
+        # Write your powershell commands here.
+        
+        Remove-Item -Force $(Build.StagingDirectory)/Dockerfile*
+        Remove-Item -Force $(Build.StagingDirectory)/qemu*
+        
+        # Use the environment variables input below to pass secret variables to this script.
+      displayName: 'clean up copy'
+    - task: PublishPipelineArtifact@0
+      displayName: 'Publish Pipeline Artifact'
+      inputs:
+        artifactName: 'linux-arm64'
+        targetPath: '$(Build.StagingDirectory)'
+
 - job: linux_x64
   pool:
     vmImage: ubuntu-16.04
+  condition: ne(variables['disableLinux'], 'true')
   steps:
     - task: DotNetCoreInstaller@0
       displayName: 'Use .NET Core sdk $(sdk_version)'
@@ -355,7 +470,7 @@ jobs:
         containerregistrytype: 'Container Registry'
         dockerRegistryConnection: 'Docker Hub'
         dockerFile: '$(Build.StagingDirectory)/Dockerfile'
-        buildArguments: 'tag=2.2'
+        buildArguments: 'tag=$(tag)'
         defaultContext: false
         context: '$(Build.StagingDirectory)'
         imageName: '$(imageName)-linux-x64'
@@ -390,6 +505,7 @@ jobs:
 - job: windows_x64
   pool:
     vmImage: windows-2019
+  condition: ne(variables['disableWindows'], 'true')
   steps:
     - task: DotNetCoreInstaller@0
       displayName: 'Use .NET Core sdk $(sdk_version)'
@@ -479,14 +595,14 @@ jobs:
         containerregistrytype: 'Container Registry'
         dockerRegistryConnection: 'Docker Hub'
         action: 'Run a Docker command'
-        customCommand: 'build --build-arg tag=2.2-nanoserver-1809 -t $(imageName)-win-x64-1809 --isolation hyperv $(Build.StagingDirectory)'
+        customCommand: 'build --build-arg tag=$(tag)-nanoserver-1809 -t $(imageName)-win-x64-1809 --isolation hyperv $(Build.StagingDirectory)'
     - task: Docker@0
       displayName: 'Build an image x64 1803'
       inputs:
         containerregistrytype: 'Container Registry'
         dockerRegistryConnection: 'Docker Hub'
         action: 'Run a Docker command'
-        customCommand: 'build --build-arg tag=2.2-nanoserver-1803 -t $(imageName)-win-x64-1803 --isolation hyperv $(Build.StagingDirectory)'
+        customCommand: 'build --build-arg tag=$(tag)-nanoserver-1803 -t $(imageName)-win-x64-1803 --isolation hyperv $(Build.StagingDirectory)'
     - powershell: |
         docker save -o $(Build.StagingDirectory)/$(dockerRepositoryRoot).$(dockerRepositoryName).win.x64.1803.tar $(imageName)-win-x64-1803
         docker save -o $(Build.StagingDirectory)/$(dockerRepositoryRoot).$(dockerRepositoryName).win.x64.1809.tar $(imageName)-win-x64-1809
@@ -560,6 +676,7 @@ jobs:
 - job: windows_arm
   pool:
     vmImage: windows-2019
+  condition: ne(variables['disableWindows'], 'true')
   steps:
     - task: DotNetCoreInstaller@0
       displayName: 'Use .NET Core sdk $(sdk_version)'
@@ -617,7 +734,7 @@ jobs:
         containerregistrytype: 'Container Registry'
         dockerRegistryConnection: 'Docker Hub'
         action: 'Run a Docker command'
-        customCommand: 'build --build-arg tag=2.2-nanoserver-1809-arm32v7 -t $(imageName)-win-arm-1809 --isolation hyperv $(Build.StagingDirectory)'
+        customCommand: 'build --build-arg tag=$(tag)-nanoserver-1809-arm32v7 -t $(imageName)-win-arm-1809 --isolation hyperv $(Build.StagingDirectory)'
 #    - task: Docker@0
 #      displayName: 'Build an image arm 1903'
 #      inputs:
